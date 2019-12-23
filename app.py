@@ -1,12 +1,28 @@
 # app.py
+from dotenv import load_dotenv
 from flask import Flask, request, jsonify
+from flask_pymongo import PyMongo
+import os
 app = Flask(__name__)
+
+load_dotenv()
+# Connect to database
+# app.config["MONGO_URI"] = os.getenv('MONGO_STRING_CONNECTION')
+# mongo = PyMongo(app)
+
+print('init...')
+print(f'.env : {os.getenv("MONGODB_URI")}')
 
 
 @app.route('/getmsg/', methods=['GET'])
 def respond():
+    # testMongo = mongo.db.testcollection.find_one({'test': 123321})
+    print('GET GET ...')
+    # print(testMongo)
+
     # Retrieve the name from url parameter
-    name = request.args.get("name", None)
+    # name = request.args.get("name", None)
+    name = 'bbrr'
 
     # For debugging
     print(f"got name {name}")
@@ -20,10 +36,10 @@ def respond():
     elif str(name).isdigit():
         response["ERROR"] = "name can't be numeric."
     # Now the user entered a valid name
-    else:
-        response["MESSAGE"] = f"Welcome {name} to our awesome platform!!"
+    # else:
+        # response["MESSAGE"] = f"Welcome {testMongo} to our awesome platform!!"
 
-    # Return the response in json format
+        # Return the response in json format
     return jsonify(response)
 
 
