@@ -20,7 +20,7 @@ db = MongoEngine(app)
 @app.route('/getmsg/', methods=['GET'])
 def respond():
     testMongo = db_models.testcollection.objects()
-    print('GET GET ...')
+    print('GET GET ....')
     print(testMongo)
 
     # Retrieve the name from url parameter
