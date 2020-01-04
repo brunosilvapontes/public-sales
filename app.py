@@ -1,19 +1,25 @@
 # app.py
+# Python 3.7.4
+import database.models as db_models
 from dotenv import load_dotenv
 from flask import Flask, request, jsonify
-from flask_pymongo import PyMongo
+from flask_mongoengine import MongoEngine
 import os
 app = Flask(__name__)
 
 load_dotenv()
+
+app.config['MONGODB_SETTINGS'] = {
+    'host': os.getenv('MONGODB_URI')
+}
+
 # Connect to database
-app.config["MONGO_URI"] = os.getenv('MONGODB_URI')
-mongo = PyMongo(app)
+db = MongoEngine(app)
 
 
 @app.route('/getmsg/', methods=['GET'])
 def respond():
-    testMongo = mongo.db.testcollection.find_one({'test': 123321})
+    testMongo = db_models.testcollection.objects()
     print('GET GET ...')
     print(testMongo)
 
