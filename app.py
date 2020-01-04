@@ -1,10 +1,10 @@
 # app.py
 # Python 3.7.4
-import database.models as db_models
 from dotenv import load_dotenv
 from flask import Flask, request, jsonify
 from flask_mongoengine import MongoEngine
 import os
+
 app = Flask(__name__)
 
 load_dotenv()
@@ -15,7 +15,7 @@ app.config['MONGODB_SETTINGS'] = {
 
 # Connect to database
 db = MongoEngine(app)
-
+import database.models as db_models
 
 @app.route('/getmsg/', methods=['GET'])
 def respond():
