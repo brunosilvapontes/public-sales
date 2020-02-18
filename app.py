@@ -4,6 +4,7 @@ from dotenv import load_dotenv
 from flask import Flask, request, jsonify
 from flask_mongoengine import MongoEngine
 import os
+import flex_leiloes
 
 app = Flask(__name__)
 
@@ -17,10 +18,17 @@ app.config['MONGODB_SETTINGS'] = {
 db = MongoEngine(app)
 import database.models as db_models
 
+@app.route('/testdb/', methods=['GET'])
+def testDb():
+    print('testing DB DB DB')
+    flex_leiloes.exec()
+    print('END testing DB E N D')
+    return "<h1>4:20... </h1>"
+
 @app.route('/getmsg/', methods=['GET'])
 def respond():
     testMongo = db_models.testcollection.objects()
-    print('GET GET ....')
+    print('GET GOT ....')
     print(testMongo)
 
     # Retrieve the name from url parameter
@@ -54,4 +62,6 @@ def index():
 
 if __name__ == '__main__':
     # Threaded option to enable multiple instances for multiple user access support
-    app.run(threaded=True, port=5000)
+    # TODO remove debug?
+    app.run(threaded=True, port=5000, debug=True)
+
