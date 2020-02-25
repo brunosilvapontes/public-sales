@@ -21,7 +21,7 @@ import database.models as db_models
 @app.route('/testdb/', methods=['GET'])
 def testDb():
     print('testing DB DB DB')
-    flex_leiloes.exec()
+    flex_leiloes.scrap()
     print('END testing DB E N D')
     return "<h1>4:20... </h1>"
 
