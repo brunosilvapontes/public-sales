@@ -5,6 +5,7 @@ from flask import Flask, request, jsonify
 from flask_mongoengine import MongoEngine
 import os
 import flex_leiloes
+from database import service, models
 
 app = Flask(__name__)
 
@@ -16,20 +17,21 @@ app.config['MONGODB_SETTINGS'] = {
 
 # Connect to database
 db = MongoEngine(app)
-import database.models as db_models
+
 
 @app.route('/testdb/', methods=['GET'])
 def testDb():
     print('testing DB DB DB')
-    flex_leiloes.scrap()
+    currentAuctions = flex_leiloes.getCurrentAuctions(models.Auction)
+    print(f'Current flex leiloes auctions #: {len(currentAuctions)}')
+    service.updateAuctions(flex_leiloes.source, currentAuctions)
     print('END testing DB E N D')
     return "<h1>4:20... </h1>"
 
+
 @app.route('/getmsg/', methods=['GET'])
 def respond():
-    testMongo = db_models.testcollection.objects()
     print('GET GOT ....')
-    print(testMongo)
 
     # Retrieve the name from url parameter
     # name = request.args.get("name", None)

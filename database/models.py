@@ -1,6 +1,6 @@
 # Python 3.7.4
 from app import db
-
+from datetime import datetime
 
 class testcollection(db.Document):
     test = db.IntField()
@@ -8,9 +8,9 @@ class testcollection(db.Document):
 
 class Auction(db.Document):
     status = db.StringField()
-    link = db.URLField()
-    source = db.StringField()
-    title = db.StringField()
+    url = db.URLField(required=True, unique=True)
+    source = db.StringField(required=True)
+    title = db.StringField(required=True, unique=True)
     currentBid = db.IntField()
     startingBid = db.IntField()
     description = db.StringField()
@@ -21,4 +21,5 @@ class Auction(db.Document):
     auction2Opening = db.DateTimeField()
     auction2Closure = db.DateTimeField()
     auction2Bid = db.IntField()
-
+    createdAt = db.DateTimeField(default=datetime.utcnow)
+    disabled = db.BooleanField(default=False)

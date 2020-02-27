@@ -2,13 +2,12 @@
 from urllib.request import urlopen
 from bs4 import BeautifulSoup
 from time import sleep
-from database.models import testcollection
 from datetime import datetime
 from unicodedata import normalize
 
 source = 'FlexLeilões'
 
-def scrap():
+def getCurrentAuctions(Auction):
     home_page = "https://www.flexleiloes.com.br/"
 
     # Access properties page
@@ -24,8 +23,9 @@ def scrap():
     list_link_properties = list(set(list_link_properties))
     list_link_properties.sort()
 
-    list_link_properties = ['detalhe-lote/1193/1/'] # TODO REMOVE
+    list_link_properties = ['detalhe-lote/1170/1/'] # TODO remove
 
+    currentAuctions = []
     # Get informations in the property page
     for property_link in list_link_properties:
         # Get property page
@@ -35,17 +35,16 @@ def scrap():
 
         # Get auction title
         title = bsObj.find('h2', {'class': 'texto-titulo3'}).text
-        # dbProperty = testcollection(title=title)
-        # dbProperty.save()
+        print(f'Scraping {title}')
 
         # Get auction status
         status = list(bsObj.find('span', {'id': 'status'}).children)[0].get_text()
 
         # Get current bid
-        currentBid = bsObj.find('b', {'id': 'lance_atual'}).text
+        currentBid = getPrice(bsObj.find('b', {'id': 'lance_atual'}).text)
 
         # Get starting bid
-        startingBid = bsObj.find('span', {'class': 'lance'}).text
+        startingBid = getPrice(bsObj.find('span', {'class': 'lance'}).text)
 
         # Get description
         descriptionIter = list(bsObj.find('span', {'class': 'descricao'}).children)
@@ -53,11 +52,12 @@ def scrap():
 
         # Get evaluation
         startEvaluation = description.lower().index('avaliação')
-        evaluation = description[startEvaluation:]
+        evaluation = getPrice(description[startEvaluation:])
         
         # Get 1st and 2nd auction info
         auction1Opening, auction1Closure, auction1Bid = None, None, None
         auction2Opening, auction2Closure, auction2Bid = None, None, None
+        reached2ndAuction = False
         for descriptionPart in descriptionIter:
             descText = descriptionPart.get_text().lower() if descriptionPart else None
             if not descText or ('hasta' not in descText and 'lance' not in descText):
@@ -65,24 +65,66 @@ def scrap():
 
             if '1ª' in descText:
                 if 'abertura' in descText:
-                    auction1Opening = getDescriptionDate(descText)
+                    auction1Opening = getAuctionDate(descText)
                 elif 'encerramento' in descText:
-                    auction1Closure = getDescriptionDate(descText)
+                    auction1Closure = getAuctionDate(descText)
             elif '2ª' in descText:
+                reached2ndAuction = True
                 if 'abertura' in descText:
-                    auction2Opening = getDescriptionDate(descText)
+                    auction2Opening = getAuctionDate(descText)
                 elif 'encerramento' in descText:
-                    auction2Closure = getDescriptionDate(descText)
-            elif 'lance' in descText:
-                print(f'LANCE : {descText}')
-        print(f'1 open {auction1Opening}')
-        print(f'1 close {auction1Closure}')
-        print(f'2 open {auction2Opening}')
-        print(f'2 close {auction2Closure}')
+                    auction2Closure = getAuctionDate(descText)
+            elif 'lance mínimo' in descText:
+                if reached2ndAuction:
+                    auction2Bid = getPrice(descText)
+                else:
+                    auction1Bid = getPrice(descText)
+
+        currentAuction = Auction(
+            status= status.upper().strip(),
+            url= property_page.strip(),
+            source= source,
+            title= title.upper().strip(),
+            currentBid= currentBid,
+            startingBid= startingBid,
+            description= description,
+            evaluation= evaluation,
+            auction1Opening= auction1Opening,
+            auction1Closure= auction1Closure,
+            auction1Bid= auction1Bid,
+            auction2Opening= auction2Opening,
+            auction2Closure= auction2Closure,
+            auction2Bid= auction2Bid
+        )
+        currentAuctions.append(currentAuction)
+
+        # Wait 1s to avoid overloading flex leilões server
         sleep(1)
+    
+    return currentAuctions
 
 
-def getDescriptionDate(descText):
+def getPrice(text):
+    # TODO % is causing errors, example: https://www.flexleiloes.com.br/detalhe-lote/1170/1/
+    # The price should be stored in cents
+    # Example: R$7.000,00 should be stored as 700000
+    if not text:
+        return None
+
+    price = ''
+    for letter in text.replace('.', ''):
+        if not letter.isnumeric() and letter != ',':
+            continue
+        if letter == ',':
+            # Ignore the cents value of the price
+            break
+        price += letter
+    
+    if price != '':
+        return int(f'{price}00')
+    return None
+
+def getAuctionDate(descText):
     hastaParts = descText.split(' ')
     
     dateStr = None
@@ -103,6 +145,8 @@ def getDescriptionDate(descText):
             timeStr = hastaPartNormalized
 
     if dateStr and timeStr:
+        if timeStr[:2] == '24':
+            timeStr = f'00{timeStr[2:]}'
         return datetime.strptime(f"{dateStr}--{timeStr}", '%d/%m/%Y--%Hh%Mmin')
 
     return None
