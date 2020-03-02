@@ -8,7 +8,7 @@ from unicodedata import normalize
 source = 'FlexLeilões'
 
 def getCurrentAuctions(Auction):
-    home_page = "https://www.flexleiloes.com.br/"
+    home_page = "https://www.flexleiloes.com.br"
 
     # Access properties page
     propertiesPage = 'https://www.flexleiloes.com.br/categorias/1/'
@@ -21,9 +21,6 @@ def getCurrentAuctions(Auction):
         if 'detalhe' in str(link.get('href')):
             list_link_properties.append(link.get('href'))
     list_link_properties = list(set(list_link_properties))
-    list_link_properties.sort()
-
-    list_link_properties = ['detalhe-lote/1170/1/'] # TODO remove
 
     currentAuctions = []
     # Get informations in the property page
@@ -105,20 +102,23 @@ def getCurrentAuctions(Auction):
 
 
 def getPrice(text):
-    # TODO % is causing errors, example: https://www.flexleiloes.com.br/detalhe-lote/1170/1/
     # The price should be stored in cents
     # Example: R$7.000,00 should be stored as 700000
     if not text:
         return None
 
     price = ''
+    priceStarted = False
     for letter in text.replace('.', ''):
-        if not letter.isnumeric() and letter != ',':
+        if not letter.isnumeric() and letter != ',' and letter != '$':
             continue
         if letter == ',':
             # Ignore the cents value of the price
             break
-        price += letter
+        if letter == '$':
+            priceStarted = True
+            continue
+        if priceStarted: price += letter
     
     if price != '':
         return int(f'{price}00')

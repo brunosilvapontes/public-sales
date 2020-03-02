@@ -26,7 +26,7 @@ def testDb():
     print(f'Current flex leiloes auctions #: {len(currentAuctions)}')
     service.updateAuctions(flex_leiloes.source, currentAuctions)
     print('END testing DB E N D')
-    return "<h1>4:20... </h1>"
+    return "<h1>UNDER CONSTRUCTION </h1>"
 
 
 @app.route('/getmsg/', methods=['GET'])
