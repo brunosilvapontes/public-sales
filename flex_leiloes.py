@@ -45,12 +45,13 @@ for property_link in list_link_properties:
     character_index = 0
     appraised_text = ''
     for span in span_descricao[0]:
-        # Get the appraised property value inside description
+        # Get the appraised property text inside description
         if 'AvaliaÃ§Ã£o' in str(span.text):
             appraised_value_start_character = str(span.text).find('AvaliaÃ§Ã£o') + 16
             character_index = appraised_value_start_character
             appraised_text = str(span.text)
 
+        # Get description
         if 'DO BEM' in str(span.text):
             description = str(span.text)
             description = description.replace('DESCRIÃÃO DO BEM:', 'DESCRICAO DO BEM:')
@@ -64,7 +65,7 @@ for property_link in list_link_properties:
             description = description.replace('OfÃ­cio', 'Oficio')
             description = description.replace('Â', '')
 
-
+    # Get the appraised property value inside appraised property text
     appraised_value = 'Avaliação: R$ '
     while True:
         if appraised_text[character_index] != ' ' and character_index < len(appraised_text) - 1 :
