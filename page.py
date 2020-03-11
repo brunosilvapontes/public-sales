@@ -15,6 +15,7 @@ class HomePage(Page):
         Page.__init__(self, link)
         self.pages_list = []
         self.all_links = []
+        self.exception_links = {}
 
     def __repr__(self):
         return self.link

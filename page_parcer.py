@@ -33,5 +33,6 @@ class PageParcer():
                 links.append(f"{home_page_url}{link_str}")
         return links
 
+# and 'mailto:' not in link_str
 
 

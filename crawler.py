@@ -1,10 +1,15 @@
+import socket
 import requests
 from bs4 import BeautifulSoup as bs
 from page import *
 from page_parcer import PageParcer
+from urllib3.exceptions import NewConnectionError, LocationParseError
+from requests.exceptions import ConnectionError, InvalidURL
+
+
 
 # List of sites to be crawled
-sites_list = {'flex_leiloes': 'https://www.flexleiloes.com.br/'}
+sites_list = {'df_leiloes': 'https://www.dfleiloes.com.br'} # Insert the link with out the '/' in the end
 
 #
 for home_page_name, home_page_link in sites_list.items():
@@ -49,7 +54,21 @@ for home_page_name, home_page_link in sites_list.items():
             for link in new_links:
                 new_page = Page(link)
                 # Return a Response object for the link
-                html = requests.get(link)
+                try:
+                    html = requests.get(link)
+                except ConnectionError as e:
+                    home_page.exception_links[link] = e
+                    return
+                except NewConnectionError as e:
+                    home_page.exception_links[link] = e
+                    return
+                except LocationParseError as e:
+                    home_page.exception_links[link] = e
+                    return
+                except InvalidURL as e:
+                    home_page.exception_links[link] = e
+                    return
+
                 # Get the raw text from the html (Response) object
                 html_raw_text = html.text
                 parcer = PageParcer(html_raw_text)
@@ -64,36 +83,31 @@ for home_page_name, home_page_link in sites_list.items():
                 home_page.pages_list.append(new_page)
                 search_links(new_page, verbose=int(verbose))
 
-    search_links(home_page, verbose=0)
+    search_links(home_page, verbose=1)
 
 
     with open(f'/Users/gustavo/Desktop/Gustavo/Projetos/public-sales/{home_page_name}.txt', 'w') as file:
-        file.write('*************** HOME PAGE ***************\n')
-        file.write(f'{home_page.link}\n')
-        file.write('\n')
-        file.write(f'All links:\n')
-        file.write(f'Number of links: {len(home_page.all_links)}\n')
-        file.write(f'{home_page.all_links}\n')
-        file.write('\n')
-        file.write('All pages\n')
-        file.write(f'Number of pages: {len(home_page.pages_list)}\n')
+        file.write('*************** HOME PAGE ***************\n\n')
+        file.write(f'{home_page.link}\n\n')
+        file.write(f'-All links:\n\n')
+        file.write(f'Number of links: {len(home_page.all_links)}\n\n')
+        file.write(f'{home_page.all_links}\n\n')
+        file.write('-All pages\n\n')
+        file.write(f'Number of pages: {len(home_page.pages_list)}\n\n')
+        file.write('-Exception links\n\n')
+        file.write(f'Number of exceptions: {len(home_page.exception_links)}\n\n')
+        file.write(f'{home_page.exception_links}\n\n')
+        file.write('-Pages status\n\n')
         for page in home_page.pages_list:
             file.write(f'{page.link} - {page.html_status} | ')
         file.write('\n\n')
-        file.write('Home page text\n')
-        file.write(f'{home_page.text}\n')
-        file.write('\n')
-        file.write('\n')
-        file.write('\n')
+        file.write('-Home page text\n\n')
+        file.write(f'{home_page.text}\n\n\n\n')
         for page in home_page.pages_list:
-            file.write('-------------- NEW PAGE --------------\n')
-            file.write(f'{page.link}\n')
-            file.write('\n')
-            file.write('Page text\n')
-            file.write(f'{page.text}\n')
-            file.write('\n')
-            file.write('\n')
-            file.write('\n')
+            file.write('-------------- NEW PAGE --------------\n\n')
+            file.write(f'{page.link}\n\n')
+            file.write('Page text\n\n')
+            file.write(f'{page.text}\n\n\n\n')
 
 '''
     for page in home_page.pages_list:
