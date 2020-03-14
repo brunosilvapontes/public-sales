@@ -1,5 +1,6 @@
-from bs4 import BeautifulSoup as bs
 import re
+from bs4 import BeautifulSoup as bs
+
 
 class PageParcer():
     """
@@ -33,6 +34,5 @@ class PageParcer():
                 links.append(f"{home_page_url}{link_str}")
         return links
 
-# and 'mailto:' not in link_str
 
 
