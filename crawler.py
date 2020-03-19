@@ -1,55 +1,42 @@
-import requests
-from page import *
-from page_parcer import PageParcer
-from urllib3.exceptions import NewConnectionError, LocationParseError
-from requests.exceptions import ConnectionError, InvalidURL
+import json
+import csv
+from page import Page
 
 
 
-# List of sites to be crawled
-sites_list = {'capital_leiloes': 'https://www.capitalleiloes.com.br',
-              'leiloes_judiciais': 'https://www.leiloesjudiciaisdf.com.br',
-              'leiloeiros_de_brasilia': 'https://www.leiloeirosdebrasilia.com.br',
-              'brasilia_leiloes': 'https://www.brasilialeiloes.com.br',
-              'df_leiloes': 'https://www.dfleiloes.com.br',
-              'mult_leiloes': 'https://multleiloes.vlance.com.br',
-              'parque_dos_leiloes': 'https://www.parquedosleiloes.com.br',
-              'flex_leiloes': 'https://www.flexleiloes.com.br',
-              'jussiara_leiloes': 'https://www.jussiaraleiloes.com',
-              'luiz_leiloes': 'https://www.luizleiloes.com.br',
-              'maria_vitorino_leiloeira': 'https://www.mariavitorinoleiloeira.com.br',
-              'moacira': 'https://www.moacira.lel.br',
-              'paulo_tolentino': 'https://www.paulotolentino.com.br',
-
-
-
-              } # Insert the link with out the '/' in the end
-
-# Iterate over sites is sites_list
-for home_page_name, home_page_link in sites_list.items():
-    home_page = HomePage(home_page_link)
-    # Get the Response object
-    html = requests.get(home_page.link)
-    # Get the raw html text from the home page
-    html_raw_text = html.text
-    parcer = PageParcer(html_raw_text)
-    # Get the links from the home page if the link is a child of the home page url
-    home_page.links_list = parcer.links(home_page.link)
-    # Parce the raw text from the home page
-    home_page.text = parcer.text()
+class Crawler:
+    def __init__(self, homepage_name, homepage_link, parcer_name='first_parcer', encoding='utf-8'):
+        """
+        :param homepage: HomePage object to be crawled
+        :param parcer: parcer chosen
+        """
+        self.all_links = []
+        self.broken_links = {}
+        self.pages_list = []
+        self.parcer_name = parcer_name
+        self.encoding = encoding
+        self.homepage = Page(homepage_link, parcer_name=parcer_name)
+        self.homepage.get_page_text()
+        self.homepage.get_page_links(homepage_link)
+        self.homepage.depth = 0
+        self.pages_list.append(self.homepage)
 
 
     # Recursive function to create a Page object for each page that contains the home page path in the url
     # Append all Page objects in the home_page.pages_list attribute
-    def search_links(page, encoding=html.apparent_encoding, verbose=0):
+    def crawl(self, page='homepage', verbose=0):
         new_links = []
+        if page == 'homepage':
+            page = self.homepage
+
         # Verify if the links from the current page was already crawled
-        for link in page.links_list:
-            if link not in home_page.all_links:
-                # If it is a new link, append it to the list of all links in the home_page object
-                home_page.all_links.append(link)
-                # List of links to be crawled
-                new_links.append(link)
+        if page.links_list:
+            for link in page.links_list:
+                if link not in self.all_links:
+                    # If it is a new link, append it to the list of all links in the home_page object
+                    self.all_links.append(link)
+                    # List of links to be crawled
+                    new_links.append(link)
 
         if verbose == 1:
             print('link da pagina')
@@ -69,53 +56,93 @@ for home_page_name, home_page_link in sites_list.items():
         # If there are links to be crawled
         else:
             for link in new_links:
-                new_page = Page(link)
-                # Return a Response object for the link
-                try:
-                    html = requests.get(link)
-                except ConnectionError as e:
-                    home_page.broken_links[link] = e
-                    return
-                except NewConnectionError as e:
-                    home_page.broken_links[link] = e
-                    return
-                except LocationParseError as e:
-                    home_page.broken_links[link] = e
-                    return
-                except InvalidURL as e:
-                    home_page.broken_links[link] = e
-                    return
-
-                # Get the Response object
-                html = requests.get(page.link)
-                # Get the raw text from the html (Response) object
-                html_raw_text = html.text
-                parcer = PageParcer(html_raw_text)
-                # Get the links from the new page
-                new_page.links_list = parcer.links(home_page.link)
-                # Parce the raw text from the new page
-                try:
-                    #new_page.text = bytes(parcer.text(), encoding=encoding)
-                    new_page.text = parcer.text()
-                except UnicodeEncodeError:
-                    new_page.text = f'UnicodeEncodeError. Encode used: {encoding}. ' \
-                                    f'Apparent encode: {html.apparent_encoding}'
-                # Get the status of the Response object
-                try:
-                    new_page.html_status = html.status_code
-                except UnicodeEncodeError:
-                    new_page.html_status = f'UnicodeEncodeError. Encode used: {encoding}. ' \
-                                           f'Apparent encode: {html.apparent_encoding}'
-                # Check if the Response status code is less then 400
-                new_page.html_ok = html.ok
-                home_page.pages_list.append(new_page)
-                search_links(new_page, verbose=int(verbose))
+                new_page = Page(link=link)
+                new_page.get_page_text()
+                new_page.get_page_links(self.homepage.link)
+                new_page.depth = page.depth + 1
+                self.pages_list.append(new_page)
+                self.crawl(page=new_page, verbose=int(verbose))
 
 
 
-    search_links(home_page, verbose=0)
-    home_page.to_json(home_page_name)
-    home_page.to_txt(home_page_name)
+    def to_json(self, file_name):
+        """
+        :param file_name: json file name
+        :return: a json file with pages object attributes
+        """
+        pages_attributes_list = []
+
+        if file_name[-5:] != '.json':
+            file_name = f'{file_name}.json'
+
+        file_path = f'crawled pages/{file_name}'
+
+        for page in self.pages_list:
+            pages_attributes_list.append(
+                {
+                'link': page.link,
+                'status': page.html_status,
+                'label': '',
+                'text': str(page.text)
+                })
+
+        #TODO pages['broken links'] = self.broken_links
+
+        pages_json = json.dumps({'pages': pages_attributes_list}, ensure_ascii=False).encode(encoding=self.encoding)
+
+        with open(file_path, 'w') as f:
+            f.write(pages_json.decode())
+
+    def to_txt(self, file_name):
+        """
+        :param file_name: txt file name
+        :return: txt file with pages object attributes
+        """
+        if file_name[-4:] != '.txt':
+            file_name = f'{file_name}.txt'
+
+        file_path = f'crawled pages/{file_name}'
+
+        with open(file_path, 'w') as f:
+            f.write('########## RESUME ##########\n\n')
+            f.write(f'Number of pages: {len(self.pages_list)}\n\n')
+            for page in self.pages_list:
+                f.write(f'{page.link} - {page.html_status}\n')
+            f.write('\n\n\n')
 
 
+            f.write('########## PAGES CONTENT ##########')
+            f.write('\n\n\n')
+            for page in self.pages_list:
+                f.write(f'{page.link}\n\n')
+                f.write(f'Page depth: {page.depth}\n\n')
+                f.write(f'Page status: {page.html_status}\n\n')
+                if page.links_list:
+                    f.write(f'Number of links: {len(page.links_list)}\n\n')
+                    for link in page.links_list:
+                        f.write(f'{link}\n')
+                    f.write('\n')
+                else:
+                    f.write(f'Number of links: 0\n\n')
+                f.write('Page text\n\n')
+                f.write(f'{page.text}\n\n\n')
+                f.write('-------------- NEW PAGE --------------\n\n')
 
+
+    def to_csv(self, file_name):
+        """
+        :param file_name: csv file name
+        :return: csv file
+        """
+
+        if file_name[-4:] != '.csv':
+            file_name = f'{file_name}.csv'
+
+        file_path = f'crawled pages/{file_name}'
+
+        with open(file_path, 'w') as f:
+            writer = csv.DictWriter(f, ['link', 'status', 'label', 'text'])
+            writer.writeheader()
+            for page in self.pages_list:
+                dic = {'link':page.link, 'status': page.html_status, 'label':'?', 'text': page.text}
+                writer.writerow(dic)
