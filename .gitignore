@@ -1,12 +1,7 @@
-/psenv
-/.vscode
-/flex_leiloes.py
-/teste.py
-/crawled pages
 /__pycache__
 /selenium_crawler
 /splash_crawler
 /testes
 /crawled\ pages/csv
-/.ipynb_checkpoints
 /.idea
+/.vscode
